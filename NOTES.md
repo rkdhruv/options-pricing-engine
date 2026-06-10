@@ -84,4 +84,76 @@ This ties straight back to put-call parity from Layer 1. Parity says a call and 
 - Differentiate it once by `σ` (vega) → it vanishes → **vega is identical** too.
 - Delta, theta, and rho *do* differ between call and put, because that parity term survives their derivatives (it's linear in `S` so delta picks up a `1`; it carries `T` and `r` so theta and rho pick up terms).
 Two-sentence version I want to be able to give on the spot: gamma and vega match because the call−put gap is linear in `S` and free of `σ`, so it dies under those derivatives. Delta, theta, and rho differ because that same gap survives differentiation by `S`, `t`, and `r`.
- 
+
+## Layer 3: Numerical methods (binomial tree + Monte Carlo)
+
+### The one idea that unifies all three methods
+
+Black-Scholes, the binomial tree, and Monte Carlo all compute the **same quantity** — the discounted expected payoff under the risk-neutral measure:
+
+```
+price = e^(−rT) · E[payoff]
+```
+
+They just evaluate that expectation three different ways:
+- **Black-Scholes** does the integral analytically — clean formula, but only possible because the vanilla payoff is simple enough to integrate by hand.
+- **Binomial tree** computes it by exhaustively summing over a discretized branching of all the prices the stock could take.
+- **Monte Carlo** samples random futures and averages them.
+Same target, three routes — and each route is good at something the others aren't. That's the whole reason this layer exists.
+
+### Binomial tree (Cox-Ross-Rubinstein)
+
+The picture: chop the life of the option into `n` little time steps. In each step the stock makes a coin flip — up by factor `u`, or down by `d = 1/u`. Do that `n` times and you get a tree of every price the stock could reach. CRR picks
+
+```
+u = e^(σ·√Δt)
+d = 1/u
+p = (e^(rΔt) − d) / (u − d)
+```
+
+calibrated so the discrete coin-flipping has the right volatility and drifts at the risk-free rate. `p` is the **risk-neutral** up-probability, not a real-world one.
+
+How you actually price it — **backward induction**:
+- At expiry the option value is dead simple: it's just the payoff, `max(S_T − K, 0)` for a call.
+- Then walk *backward*. The value at any node is the discounted average of its two children: `e^(−rΔt)·[ p·V_up + (1−p)·V_down ]`.
+- Repeat until the whole tree collapses to one number at today — that's the price.
+
+**Why the tree earns its place: American options.** Because the tree knows the stock price at *every* intermediate node, at each one I can ask "would I be better off exercising right now?" and take `max(keep holding, exercise now)`. Closed-form Black-Scholes physically can't do this — it only knows expiry. My run priced the American put at **6.09** vs the European put's **5.57**. That **0.53 gap is the value of being allowed to exercise early**, and the tree is what captured it.
+
+### Monte Carlo
+
+Conceptually the simplest of the three: simulate the future a hundred-thousand-plus times and average what you get. Each simulated future is one draw of the terminal price from its risk-neutral distribution:
+
+```
+S_T = S · exp( (r − σ²/2)·T + σ·√T·Z ),   Z ~ N(0, 1)
+```
+
+That's geometric Brownian motion solved out to time `T`: a drift term `(r − σ²/2)·T` plus a random shock scaled by vol and a standard normal draw `Z`. Compute the payoff for each simulated `S_T`, average them, discount once. The law of large numbers guarantees that average converges to the true expected payoff.
+
+**Why MC earns its place: flexibility.** The closed form is locked to vanilla European payoffs. MC doesn't care how weird the payoff is — Asian (average over the path), barrier (knocks out if a level is touched), lookback — I just swap out the payoff function. That generality is the whole point, and it's why exotic-option desks live on MC.
+
+**The catch: convergence is slow, ~`1/√N`.** To halve the error I need *four times* the paths. That's why the function returns a standard error — a built-in error bar — and why my run reports a `±` band instead of an exact number. I also seed the RNG so runs are reproducible; without it MC gives a slightly different number every run, which is correct but annoying when checking work.
+
+### Verify (the "done when")
+
+All three land on ~10.45 from completely different machinery:
+
+```
+Black-Scholes call : 10.4506
+Binomial (n=500)   : 10.4466            <- off by 0.004
+Monte Carlo (200k) : 10.4634 ± 0.0649   <- BS sits inside the band
+```
+
+The tree is close and tightens as `n` grows; MC's confidence interval comfortably contains the true value. **That agreement from three independent directions is the deliverable for this layer.**
+
+The convergence, the tree marching toward the Black-Scholes line as `n` grows:
+
+```
+n=10:   10.2534
+n=50:   10.4107
+n=100:  10.4306
+n=500:  10.4466
+n=2000: 10.4496
+```
+
+This is exactly the "binomial → Black-Scholes as n → ∞" demonstration. The actual plot is a later (README) item, but the numbers are already sitting here.
