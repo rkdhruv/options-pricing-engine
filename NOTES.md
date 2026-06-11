@@ -160,8 +160,6 @@ This is exactly the "binomial → Black-Scholes as n → ∞" demonstration. The
 
 ## Layer 4: Implied volatility — the conceptual flip
 
-*(In progress — just the concept so far, code and the rest come later.)*
-
 ### The basic idea
 
 Everything until now ran Black-Scholes *forward*: feed it σ, get a price. Here I flip it — instead of already knowing σ, I **find** σ for a given market price. That's how markets actually work: nobody can observe future volatility, but the option's price is right there on the screen, so I run the model in reverse to get the σ the price is implying.
@@ -191,3 +189,33 @@ That's the payoff I flagged two layers ago: vega wasn't just one of five Greeks 
 Newton is fast but not bulletproof. For options deep in- or out-of-the-money, vega shrinks toward zero — and dividing by a near-zero derivative makes Newton take wild, divergent jumps. A bad starting guess can send it off a cliff too. So the robust pattern is: **try Newton, and if it misbehaves, fall back to Brent's method** (`scipy.optimize.brentq`).
 
 Brent is a bracketing method — from my understanding, you hand it an interval known to contain the root (say vol between 0 and 500%), and it's mathematically guaranteed to converge because it always keeps the root trapped inside a shrinking bracket. It trades a little speed for total reliability. Fast-but-fragile with a slow-but-safe backstop is the design choice here, and a clean thing to be able to explain.
+
+### Verify (the "done when")
+
+The clean correctness test is a **round trip**: price an option at a known vol, then feed that price back in and check I recover the vol I started with.
+
+```
+Priced call at vol = 0.20  ->  10.4506
+Recovered implied vol      ->  0.200000
+```
+
+Exact recovery means the inversion is sound. That round trip is the bar for calling the layer done — getting a vol back out of a price.
+
+### The volatility smile (the real prize)
+
+Black-Scholes assumes volatility is a single constant — one σ for the stock, full stop. So if the model were literally right, every option on the same stock and same expiry would imply the *same* vol regardless of strike, and a plot of implied vol vs strike would be a flat line.
+
+It isn't flat. Backing implied vol out across strikes gives a U-shape (the "smile") or a downward slope (the "skew"):
+
+```
+strike   implied vol
+  80        0.2600
+  90        0.2200
+ 100        0.2000   <- lowest, at the money
+ 110        0.2150
+ 120        0.2500
+```
+
+Vol is lowest near the money and rises as you move away in either direction. That's the market openly contradicting a core Black-Scholes assumption.
+
+Why it happens: real returns have **fat tails** — crashes and jumps happen far more often than the model's tidy lognormal allows. So far-out-of-the-money options (crash insurance on the downside, lottery-ticket upside) are worth more than constant-vol Black-Scholes says they should be. With the formula held fixed, the only way a higher price can show up is as a higher implied vol — so the wings lift into a smile. The smile is the market pricing in tail risk the model ignores.
