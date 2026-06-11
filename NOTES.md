@@ -219,3 +219,17 @@ strike   implied vol
 Vol is lowest near the money and rises as you move away in either direction. That's the market openly contradicting a core Black-Scholes assumption.
 
 Why it happens: real returns have **fat tails** — crashes and jumps happen far more often than the model's tidy lognormal allows. So far-out-of-the-money options (crash insurance on the downside, lottery-ticket upside) are worth more than constant-vol Black-Scholes says they should be. With the formula held fixed, the only way a higher price can show up is as a higher implied vol — so the wings lift into a smile. The smile is the market pricing in tail risk the model ignores.
+
+## Layer 5:
+### Layer 5a: Validation suite (parity, FD Greeks, convergence)
+
+(in progress)
+
+important to test and review all my work so far using these checks
+- check one: Pull-call parity: used before in layer 1 indirectly
+- check two: Greeks by finite difference
+- check three: Convergence: seeing if all independent methods agree with each other.
+
+## next steps
+- *Layer5b* a minimal interface to allowing other people to run my code.
+- *Layer5c* README to tie all of the layers together.
