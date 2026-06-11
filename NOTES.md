@@ -157,3 +157,37 @@ n=2000: 10.4496
 ```
 
 This is exactly the "binomial → Black-Scholes as n → ∞" demonstration. The actual plot is a later (README) item, but the numbers are already sitting here.
+
+## Layer 4: Implied volatility — the conceptual flip
+
+*(In progress — just the concept so far, code and the rest come later.)*
+
+### The basic idea
+
+Everything until now ran Black-Scholes *forward*: feed it σ, get a price. Here I flip it — instead of already knowing σ, I **find** σ for a given market price. That's how markets actually work: nobody can observe future volatility, but the option's price is right there on the screen, so I run the model in reverse to get the σ the price is implying.
+
+The catch: there's no way to invert Black-Scholes for σ — you can't isolate it algebraically. So this becomes a **root-finding** problem instead.
+
+It's a well-posed one, though, because the price is **strictly increasing in σ** (more vol always means a more valuable option — that's vega being positive everywhere). A strictly increasing function hits each output exactly once, so for any sensible market price there's a single, unique implied vol to find. I just have to hunt for it numerically.
+
+### Newton-Raphson, and why vega is the engine
+
+Newton-Raphson solves `f(x) = 0` by guessing and then repeatedly improving:
+
+```
+x_next = x − f(x) / f'(x)
+```
+
+In my case the function is `f(σ) = BlackScholes(σ) − market_price` — I want the σ that drives that difference to zero. Its derivative `f'(σ)` is `∂(price)/∂σ`, which is exactly **vega**. So the thing I built back in Layer 2 turns out to be the precise derivative this method needs. Each step:
+
+```
+σ_next = σ − (BS_price(σ) − market_price) / vega(σ)
+```
+
+That's the payoff I flagged two layers ago: vega wasn't just one of five Greeks to list — it's the gradient that lets me invert the model. Newton converges fast (roughly doubling the correct digits each step) when it behaves.
+
+### Why I need a fallback
+
+Newton is fast but not bulletproof. For options deep in- or out-of-the-money, vega shrinks toward zero — and dividing by a near-zero derivative makes Newton take wild, divergent jumps. A bad starting guess can send it off a cliff too. So the robust pattern is: **try Newton, and if it misbehaves, fall back to Brent's method** (`scipy.optimize.brentq`).
+
+Brent is a bracketing method — from my understanding, you hand it an interval known to contain the root (say vol between 0 and 500%), and it's mathematically guaranteed to converge because it always keeps the root trapped inside a shrinking bracket. It trades a little speed for total reliability. Fast-but-fragile with a slow-but-safe backstop is the design choice here, and a clean thing to be able to explain.
