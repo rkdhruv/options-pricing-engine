@@ -229,7 +229,18 @@ Why it happens: real returns have **fat tails** — crashes and jumps happen far
   - *Theta sign subtlety* (likely interview poke): `T` is time *remaining*, but theta is value lost as time *passes* — opposite directions — so the finite difference in `T` has to be **negated** to match. That flip is exactly why theta comes out negative for a long option.
 - **Check 3 — Convergence.** Confirms the three independent methods agree, and shows *how* they get there. The pattern is the real point: the **tree converges at ~`1/n`**, **MC at ~`1/√N`** — MC needs ~100× the paths to match a 10× error cut from the tree. That's why I reach for the tree on vanilla options and only pay MC's slow-convergence tax when I need its flexibility for exotics.
 (Bump size matters: `h ≈ 1e-4` is the sweet spot for first derivatives — too big is crude, too small lets floating-point rounding swamp the difference. Gamma, a second difference, is the touchiest; `~1e-2` fixes it if it looks off. That's the rounding-vs-truncation tradeoff.)
- 
+
+### Layer 5b — Interface + plots *(in progress)*
+
+**Interface — a CLI.** One file, runs the whole engine with a single command, and lives cleanly in git (unlike a notebook's tangled saved output). It also signals I can structure a program with a real entry point, not just loose functions. Using `argparse` gives `--help`, type-checking, and validated choices for free. (A Jupyter notebook would be the more quant-native demo — narrative + code + plots inline — and the same function calls drop straight into cells; the CLI is just the more review-proof artifact in a repo.)
+
+**Three plots, each one a thing I can talk about** (not decoration):
+- **Volatility smile** — implied vol across strikes, with a dashed line at the single flat vol Black-Scholes assumes; the real curve smiles above it at the wings. This is the figure that proves I understand the model's *limits*, not just its mechanics. Honesty note: my version uses illustrative quotes, so I'll say that plainly in the README (or upgrade it later with a real option chain).
+- **Convergence curve** — binomial price vs step count, oscillating in and settling onto the Black-Scholes line. Cleanest, most honest plot — pure output of my own code. The sawtooth (alternating overshoot/undershoot as `n` grows) is worth a sentence: it depends on whether the strike lands neatly on a node at a given `n`.
+- **Gamma near expiry** — gamma across spot, one curve per time-to-expiry. Far from expiry it's a gentle hump; as `T → 0` it collapses into a tall narrow spike at the strike. That spike is **pin risk**: an ATM option about to expire has explosive gamma — its delta has to swing from ~0 to ~1 over a vanishing price range — which is what makes hedging right before expiry a nightmare. Good figure to be able to point at and explain.
+One-line reading of each (for the "walk me through this plot" prompt): smile = *market disagrees with constant vol*; convergence = *tree agrees with Black-Scholes as `n` grows*; gamma = *hedging risk concentrates at the strike as expiry approaches*.
+
+> **Future me:** if I come back to this, make the interface more interactive — a small Streamlit/web app with sliders for `S, K, σ, T` that re-prices and redraws the plots live, instead of the static CLI + saved PNGs. Just a note for now, not part of the current scope.
+
 ### Still to come
-- **Layer 5b** — a minimal interface (CLI or notebook) so others can run my code, plus the plots (vol smile, convergence curve).
 - **Layer 5c** — README tying all the layers together.
