@@ -1,7 +1,7 @@
 import numpy as np
 from black_scholes import black_scholes
 from greeks import greeks
-from binomial import binominal_tree
+from binomial import binomial_tree
 from monte_carlo import monte_carlo
 
 def price(S, K, r, sigma, T, option="call"):
@@ -34,7 +34,7 @@ def check_greek(S, K, r, sigma, T, h=1e-4):
 def check_convergence(S, K, r, sigma, T):
     bs = price(S, K, r, sigma, T)
     for n in [10, 100, 1000]:
-        print(f"[tree] n={n:5d} gap = {abs(binominal_tree(S, K, r, sigma, T, n) - bs):.4f}")
+        print(f"[tree] n={n:5d} gap = {abs(binomial_tree(S, K, r, sigma, T, n) - bs):.4f}")
     for N in [1_000, 100_000, 1_000_000]:
         mc, _ = monte_carlo(S, K, r, sigma, T, N)
         print(f"[mc]    N={N:8d} gap = {abs(mc - bs):.4f}")

@@ -1,6 +1,6 @@
 import numpy as np
 
-def binominal_tree(S, K, r, sigma, T, n=500, option="call", american=False):
+def binomial_tree(S, K, r, sigma, T, n=500, option="call", american=False):
     """
     Price an option with a Cox-Ross-Rubinstein binomial tree.
     n: number of time steps. american=True checks early exercise.
@@ -30,6 +30,6 @@ def binominal_tree(S, K, r, sigma, T, n=500, option="call", american=False):
     return V[0]
 
 if __name__ == "__main__":
-    print(binominal_tree(100, 100, 0.05, 0.2, 1.0, n=500))
-    print(binominal_tree(100, 100, 0.05, 0.2, 1.0, n=500, option="put", american=True))
+    print(binomial_tree(100, 100, 0.05, 0.2, 1.0, n=500))
+    print(binomial_tree(100, 100, 0.05, 0.2, 1.0, n=500, option="put", american=True))
 
