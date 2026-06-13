@@ -230,7 +230,7 @@ Why it happens: real returns have **fat tails** — crashes and jumps happen far
 - **Check 3 — Convergence.** Confirms the three independent methods agree, and shows *how* they get there. The pattern is the real point: the **tree converges at ~`1/n`**, **MC at ~`1/√N`** — MC needs ~100× the paths to match a 10× error cut from the tree. That's why I reach for the tree on vanilla options and only pay MC's slow-convergence tax when I need its flexibility for exotics.
 (Bump size matters: `h ≈ 1e-4` is the sweet spot for first derivatives — too big is crude, too small lets floating-point rounding swamp the difference. Gamma, a second difference, is the touchiest; `~1e-2` fixes it if it looks off. That's the rounding-vs-truncation tradeoff.)
 
-### Layer 5b — Interface + plots *(in progress)*
+### Layer 5b — Interface + plots
 
 **Interface — a CLI.** One file, runs the whole engine with a single command, and lives cleanly in git (unlike a notebook's tangled saved output). It also signals I can structure a program with a real entry point, not just loose functions. Using `argparse` gives `--help`, type-checking, and validated choices for free. (A Jupyter notebook would be the more quant-native demo — narrative + code + plots inline — and the same function calls drop straight into cells; the CLI is just the more review-proof artifact in a repo.)
 
@@ -242,5 +242,6 @@ One-line reading of each (for the "walk me through this plot" prompt): smile = *
 
 > **Future me:** if I come back to this, make the interface more interactive — a small Streamlit/web app with sliders for `S, K, σ, T` that re-prices and redraws the plots live, instead of the static CLI + saved PNGs. Just a note for now, not part of the current scope.
 
-### Still to come
-- **Layer 5c** — README tying all the layers together.
+### Layer 5c — README 
+
+Wrote the README — the thing that actually turns five separate modules into *a project*. It walks the layers in order, embeds the three figures, and says what each one shows. The structure/how-to-run details live there; the *why* lives in these notes.
